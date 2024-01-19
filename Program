@@ -1,0 +1,66 @@
+import RPi.GPIO as GPIO
+import time
+import BlynkLib
+from BlynkTimer import BlynkTimer
+             relay=18
+
+TRIG=20
+ECHO=21
+GPIO.setmode(GPIO.BCM)
+GPIO.setup(relay, GPIO.OUT)
+
+BLYNK_AUTH_TOKEN = 'AAFD98WU-C2p6AVOSI_hzYNfJEpHYNCj'
+
+blynk = BlynkLib.Blynk(BLYNK_AUTH_TOKEN)
+
+timer = BlynkTimer()
+
+
+# function to sync the data from virtual pins
+@blynk.on("connected")
+def blynk_connected():
+    print("Connected to Blynk")
+    time.sleep(2);
+    
+@blynk.on("V1")
+def v0_write_handler(value):
+
+    if int(value[0]) is not 0:
+        GPIO.output(relay, GPIO.LOW)
+        print('Relay HIGH')
+    else:
+        GPIO.output(relay, GPIO.HIGH)
+        print('Relay LOW')
+
+
+
+
+
+
+
+while True:
+    print("distance measurement in progress")
+    GPIO.setup(TRIG,GPIO.OUT)
+    GPIO.setup(ECHO,GPIO.IN)
+    GPIO.output(TRIG,False)
+    print("waiting for sensor to settle")
+    time.sleep(0.2)
+    GPIO.output(TRIG,True)
+    time.sleep(0.00001)
+    GPIO.output(TRIG,False)
+    while GPIO.input(ECHO)==0:
+        pulse_start=time.time()
+    while GPIO.input(ECHO)==1:
+        pulse_end=time.time()
+    pulse_duration=pulse_end-pulse_start
+    distance=pulse_duration*17150
+    distance=round(distance,2)
+    print("distance:",distance,"cm")
+    if distance < 10:
+        GPIO.output(relay, GPIO.HIGH)
+        
+    time.sleep(2)
+    blynk.virtual_write(0, distance)
+    print("Values sent to New Blynk Server!")
+    blynk.run()
+    timer.run()
